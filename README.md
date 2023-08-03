@@ -10,5 +10,8 @@ Note that you can change DIO0 to DIO5, RESET, and NSS pins and assign them your 
 
 ![image](https://github.com/Miladnorouzi77/LoRathon/assets/32528196/068e7065-0f29-452f-8fc7-e78309ddaf56)
 
+# NOTES:
+* Some boards (like the Raspberry Pi Zero W), cannot supply enough current for TX mode. So, be sure to use an external 3.3V supply that can provide at least 120mA. (Or use lower Transmitting power)
+
 # API:
 
