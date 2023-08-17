@@ -82,7 +82,7 @@ class LoRa():
         elif mode == "ReceiveSIN":
             data = MODES.MODE_LONG_RANGE_MODE | MODES.MODE_RX_SINGLE
             self.currentMode = "ReceiveSIN"
-        self.writeOnSPI(REG_OP_MODE, data)
+        self.writeOnSPI(REG.REG_OP_MODE, data)
 
     #This function will check if spi can connect to module or not
     def checkConnection(self):
@@ -94,18 +94,18 @@ class LoRa():
 
     #This function will reset module
     def reset(self):
-        GPIO.output(rstPin, 0)
+        GPIO.output(self.rstPin, 0)
         time.sleep(.01)
-        GPIO.output(rstPin, 1)
+        GPIO.output(self.rstPin, 1)
         time.sleep(.01)
 
     #This function will set the Spreading factor on module
     def setSpreadingFactor(self, sf):
-        if spreadingFactor < 6:
-            spreadingFactor = 6
-        elif spreadingFactor > 12:
-            spreadingFactor = 12
-        if spreadingFactor == 6:
+        if sf < 6:
+            sf = 6
+        elif sf > 12:
+            sf = 12
+        if sf == 6:
             self.writeOnSPI(REG.REG_DETECTION_OPTIMIZE, 0xC5)
             self.writeOnSPI(REG.REG_DETECTION_THRESHOLD, 0x0C)
         else:
@@ -117,7 +117,7 @@ class LoRa():
 
     #This function will get the Spreading factor from module
     def getSpreadingFactor(self, sf):
-        ans = self.readFromSPI(REG_MODEM_CONFIG_2, 1) >> 4
+        ans = self.readFromSPI(REG.REG_MODEM_CONFIG_2, 1) >> 4
         return ans
     
     #   BW ---------> Input Value
@@ -161,7 +161,7 @@ class LoRa():
     
     #This function will get the BandWidth of the chip
     def getSignalBandwidth(self):
-        ans = self.readFromSPI(REG_MODEM_CONFIG_1) >> 4
+        ans = self.readFromSPI(REG.REG_MODEM_CONFIG_1) >> 4
         bw = "Error"
         if ans == 0:
             bw = "7.8 KHz"
@@ -250,8 +250,8 @@ class LoRa():
             if pwr < 0:
                 pwr = 0
             elif pwr > 14:
-                pwr = 14;
-            self.writeOnSPI(REG_PA_CONFIG, pwr | 0x70)
+                pwr = 14
+            self.writeOnSPI(REG.REG_PA_CONFIG, pwr | 0x70)
         else:
             if pwr > 17:
                 if pwr > 20:
@@ -344,10 +344,4 @@ class LoRa():
         self.writeOnSPI(REG.REG_IRQ_FLAGS, IRQMASKS.IRQ_RX_DONE_MASK)
         self.changeWorkingMode("ReceiveCON")
         return message
-
-
-    
-
         
-
-
