@@ -33,4 +33,4 @@ To install the package use the below command:
 Requirement packages will be installed automatically.
 
 # API:
-
+Check [API.md](API.md) file for usage toturial.
