@@ -1,0 +1,16 @@
+Metadata-Version: 2.1
+Name: LoRathon
+Version: 1.0.1
+Summary: A LoRa commiunication package
+Home-page: https://github.com/miladnorouziii/LoRathon
+Author: Milad Norouzi
+Author-email: miladnorouzi1998@gmail.com
+License: GPL-3.0
+Keywords: Lora
+Classifier: Development Status :: 3 - Alpha
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: GNU General Public License (GPL)
+Classifier: Programming Language :: Python :: 3
+License-File: LICENSE
+
+This library is for LoRa modules (Sx127x) based on the Python language

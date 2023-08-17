@@ -1,0 +1,2 @@
+spidev>=1.6
+RPi.GPIO
