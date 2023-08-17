@@ -1,6 +1,7 @@
 import spidev
 import time
 import RPi.GPIO as GPIO
+from .Const import *
 
 class LoRa():
 
@@ -11,15 +12,14 @@ class LoRa():
     power = 17
     RFO = False
     preamble = 8
-    currentMode = "Receive"
+    currentMode = "ReceiveCON"
     CRC = True
     syncWord = 56
+    rstPin = 22
     GPIO.setmode(GPIO.BCM)
-    GPIO.setup(22, GPIO.OUT)
-
-
+    
     #Initial Module with desire states
-    def __init__(self, frequency, spreadingFactor, bandWidth, crcRate, power, RFO, crcCheck, syncWord):
+    def __init__(self, rstPin, frequency, spreadingFactor, bandWidth, crcRate, power, RFO, crcCheck, syncWord):
         self.frequency = frequency
         self.spreadingFactor = spreadingFactor
         self.bandWidth = bandWidth
@@ -28,9 +28,11 @@ class LoRa():
         self.RFO = RFO
         self.CRC = crcCheck
         self.syncWord = syncWord
-        GPIO.output(22, 0)
+        self.rstPin = rstPin
+        GPIO.setup(rstPin, GPIO.OUT)
+        GPIO.output(rstPin, 0)
         time.sleep(.01)
-        GPIO.output(22, 1)
+        GPIO.output(rstPin, 1)
         time.sleep(.01)
 
     #This function write Bytes on spi using spidev driver
@@ -41,6 +43,7 @@ class LoRa():
         spi.xfer2([address | 0x80, msg])
         spi.close()
 
+    #This function write Bytes on spi using spidev driver
     def burstWrite(self, address, msg):
         spi = spidev.SpiDev()
         spi.open(0, 0)
@@ -61,60 +64,63 @@ class LoRa():
         spi.close()
         return reply[1:]
 
+    #This function will change working mode
+    def changeWorkingMode(self, mode):
+        reply = self.readFromSPI(REG.REG_OP_MODE, 1)
+        if mode == "Sleep":
+            data = MODES.MODE_LONG_RANGE_MODE | MODES.MODE_SLEEP
+            self.currentMode = "Sleep"
+        elif mode == "Standby":
+            data = MODES.MODE_LONG_RANGE_MODE | MODES.MODE_STDBY
+            self.currentMode = "Standby"
+        elif mode == "Transmit":
+            data = MODES.MODE_LONG_RANGE_MODE | MODES.MODE_TX
+            self.currentMode = "Transmit"
+        elif mode == "ReceiveCON":
+            data = MODES.MODE_LONG_RANGE_MODE | MODES.MODE_RX_CONTINUOUS
+            self.currentMode = "ReceiveCON"
+        elif mode == "ReceiveSIN":
+            data = MODES.MODE_LONG_RANGE_MODE | MODES.MODE_RX_SINGLE
+            self.currentMode = "ReceiveSIN"
+        self.writeOnSPI(REG_OP_MODE, data)
+
     #This function will check if spi can connect to module or not
     def checkConnection(self):
-        reply = self.readFromSPI(0x42, 1)
+        reply = self.readFromSPI(REG.REG_VERSION, 1)
         if reply[0]==0x12:
             return True
         else:
              return False
 
+    #This function will reset module
     def reset(self):
-        GPIO.output(22, 0)
+        GPIO.output(rstPin, 0)
         time.sleep(.01)
-        GPIO.output(22, 1)
+        GPIO.output(rstPin, 1)
         time.sleep(.01)
-
-    #This Function will change the working Mode
-    def workingMode(self, mode):
-        reply = self.readFromSPI(0x01, 1)
-        if mode=="Sleep":
-            data = (reply[0] & 0xF8) | 0x00
-            self.currentMode = "Sleep"
-        elif mode == "Standby":
-            data = (reply[0] & 0xF8) | 0x01
-            self.currentMode = "Standby"
-        elif mode == "Transmit":
-            data = 0x83
-            self.currentMode = "Transmit"
-        elif mode == "Receive":
-            data = 0x85
-            self.currentMode = "Receive"
-        self.writeOnSPI(0x01, data);
 
     #This function will set the Spreading factor on module
-    def setSF(self, sf):
-        reply = self.readFromSPI(0x1E, 1)
-        data = (sf << 4) + (reply[0] & 0x0F)
-        self.writeOnSPI(0x1E, data);
-
-    def setCrcCheck(self, crcCheck):
-        if self.CRC:
-            reply = self.readFromSPI(0x1E, 1)
-            data = reply[0] | 0x04
-            print("trye  data: " + str(data))
-            self.writeOnSPI(0x1E, data)
+    def setSpreadingFactor(self, sf):
+        if spreadingFactor < 6:
+            spreadingFactor = 6
+        elif spreadingFactor > 12:
+            spreadingFactor = 12
+        if spreadingFactor == 6:
+            self.writeOnSPI(REG.REG_DETECTION_OPTIMIZE, 0xC5)
+            self.writeOnSPI(REG.REG_DETECTION_THRESHOLD, 0x0C)
         else:
-            reply = self.readFromSPI(0x1E, 1)
-            data = reply[0] & 0xfb
-            print("false data: " + str(data))
-            self.writeOnSPI(0x1E, data)
+            self.writeOnSPI(REG.REG_DETECTION_OPTIMIZE, 0xC3)
+            self.writeOnSPI(REG.REG_DETECTION_THRESHOLD, 0x0A)
+        reply = self.readFromSPI(REG.REG_MODEM_CONFIG_2, 1)
+        data = ((sf << 4) & 0xf0) + (reply[0] & 0x0F)
+        self.writeOnSPI(REG.REG_MODEM_CONFIG_2, data)
 
-    def setSync(self, sw):
-        self.writeOnSPI(0x39, sw)
-        reply = self.readFromSPI(0x39, 1)
-
-#   BW ---------> Input Value
+    #This function will get the Spreading factor from module
+    def getSpreadingFactor(self, sf):
+        ans = self.readFromSPI(REG_MODEM_CONFIG_2, 1) >> 4
+        return ans
+    
+    #   BW ---------> Input Value
 #   7.8KHz ---------> 0
 #   10.4KHz ---------> 1
 #   15.6KHz ---------> 2
@@ -127,7 +133,7 @@ class LoRa():
 #   500KHz ---------> 9
 
     #This function will change Bandwidth on module. be aware of input value.
-    def setBW(self, bandWidth):
+    def setSignalBandwidth(self, bandWidth):
         bw = 0
         if bandWidth == 7.8:
             bw = 0
@@ -149,9 +155,50 @@ class LoRa():
             bw = 8
         elif bandWidth == 500:
             bw = 9
-        reply = self.readFromSPI(0x1D, 1)
-        data = (bw << 4) + (reply[0] & 0x0F)
-        self.writeOnSPI(0x1D, data);
+        reply = self.readFromSPI(REG.REG_MODEM_CONFIG_1, 1)
+        data = (reply[0] & 0x0F) | (bw << 4) 
+        self.writeOnSPI(REG.REG_MODEM_CONFIG_1, data)
+    
+    #This function will get the BandWidth of the chip
+    def getSignalBandwidth(self):
+        ans = self.readFromSPI(REG_MODEM_CONFIG_1) >> 4
+        bw = "Error"
+        if ans == 0:
+            bw = "7.8 KHz"
+        elif ans == 1:
+            bw = "10.4 KHz"
+        elif ans == 2:
+            bw = "15.6 KHz"
+        elif ans == 3:
+            bw = "20.8 KHz"
+        elif ans == 4:
+            bw = "31.25 KHz"
+        elif ans == 5:
+            bw = "41.7 KHz"
+        elif ans == 6:
+            bw = "62.5 KHz"
+        elif ans == 7:
+            bw = "125 KHz"
+        elif ans == 8:
+            bw = "250 KHz"
+        elif ans == 9:
+            bw = "500 KHz"
+        return bw
+
+    #This function will enable or disable crc check.
+    def setCrcCheck(self, crcCheck):
+        if self.CRC:
+            reply = self.readFromSPI(REG.REG_MODEM_CONFIG_2, 1)
+            data = reply[0] | 0x04
+            self.writeOnSPI(REG.REG_MODEM_CONFIG_2, data)
+        else:
+            reply = self.readFromSPI(REG.REG_MODEM_CONFIG_2, 1)
+            data = reply[0] & 0xfb
+            self.writeOnSPI(REG.REG_MODEM_CONFIG_2, data)
+
+    # This function will set sync word
+    def setSync(self, sw):
+        self.writeOnSPI(REG.REG_SYNC_WORD, sw)
 
 #   CRC ---------> Input Value
 #   4/5 ---------> 1
@@ -161,6 +208,10 @@ class LoRa():
 
     #This function will change CRC on module
     def setCRC(self, cr):
+        if cr < 5:
+            cr = 5
+        elif cr > 8 :
+            cr = 8
         crc = 1
         if cr == 5:
             crc = 1
@@ -170,9 +221,9 @@ class LoRa():
             crc = 3
         elif cr == 8:
             crc = 4
-        reply = self.readFromSPI(0x1D, 1)
-        data = (reply[0] & 0xF0) + (crc << 1)
-        self.writeOnSPI(0x1D, data);
+        reply = self.readFromSPI(REG.REG_MODEM_CONFIG_1, 1)
+        data = (reply[0] & 0xF0) | (crc << 1)
+        self.writeOnSPI(REG.REG_MODEM_CONFIG_1, data);
 
     #This function will set carrier frequency
     def setFREQ(self, fr):
@@ -180,18 +231,18 @@ class LoRa():
         msb = freq >> 16
         mid = (freq & 0xFFFF) >> 8
         lsb = (freq & 0xFF)
-        self.writeOnSPI(0x06, msb)
-        self.writeOnSPI(0x07, mid)
-        self.writeOnSPI(0x08, lsb)
+        self.writeOnSPI(REG.REG_FRF_MSB, msb)
+        self.writeOnSPI(REG.REG_FRF_MID, mid)
+        self.writeOnSPI(REG.REG_FRF_LSB, lsb)
 
     #This function will set the current protect registers
     def setOCP(self, mA):
         trim = 27
         if mA <= 120:
             trim = (mA - 45) / 5
-        elif mA >= 240:
+        elif mA <= 240:
             trim = (mA + 30) / 10
-        self.writeOnSPI(0x0B, 0x20 | (0x1F & int(trim)))
+        self.writeOnSPI(REG.REG_OCP, 0x20 | (0x1F & int(trim)))
 
     #This function will set output power (PA_Conf is 1)
     def setPWR(self, pwr, RFO):
@@ -200,25 +251,25 @@ class LoRa():
                 pwr = 0
             elif pwr > 14:
                 pwr = 14;
-            self.writeOnSPI(0x09, pwr | 0x70)
+            self.writeOnSPI(REG_PA_CONFIG, pwr | 0x70)
         else:
             if pwr > 17:
                 if pwr > 20:
                     pwr = 20
                 pwr = pwr - 3
-                self.writeOnSPI(0x4D, 0x87)
+                self.writeOnSPI(REG.REG_PA_DAC, 0x87)
                 self.setOCP(140)
             else:
                 if pwr < 2:
                     pwr = 2
-                self.writeOnSPI(0x4D, 0x84)
+                self.writeOnSPI(REG.REG_PA_DAC, 0x84)
                 self.setOCP(100)
-            self.writeOnSPI(0x09, (pwr-2) | 0x80)
+            self.writeOnSPI(REG.REG_PA_CONFIG, (pwr-2) | PACONFIG.PA_BOOST)
 
     #This function will config the module
     def powerUP(self):
         self.reset()
-        self.workingMode("Sleep")
+        self.changeWorkingMode("Sleep")
         payload = self.readFromSPI(0x01, 1)
         self.writeOnSPI(0x01, payload[0] | 0x80)
         self.setFREQ(self.frequency)
@@ -227,75 +278,76 @@ class LoRa():
         payload = self.readFromSPI(0x1E, 1)
         #self.writeOnSPI(0x1E, payload[0] | 0x03)              #This line will disable CRC
         self.writeOnSPI(0x1F, 0xFF)                           #Set receiver timeout to maximum (On single Mode)
-        self.setSF(self.spreadingFactor)
+        self.setSpreadingFactor(self.spreadingFactor)
         self.setCrcCheck(self.CRC)
-        self.setBW(self.bandWidth)
+        self.setSignalBandwidth(self.bandWidth)
         self.setCRC(self.crcRate)
         self.setSync(self.syncWord)
         self.writeOnSPI(0x20, self.preamble >> 8)
         self.writeOnSPI(0x21, self.preamble & 0xFF)
         payload = self.readFromSPI(0x40, 1)
         self.writeOnSPI(0x40, payload[0] | 0x3F)               # Map DIO0 To Receive
-        self.workingMode("Standby")
-        self.workingMode("Receive")
+        self.changeWorkingMode("Standby")
+        self.changeWorkingMode("ReceiveCON")
         if self.checkConnection():
             reply = self.readFromSPI(0x39, 1)
             return True
         else:
             return False
 
-    #This function will check operating registers to check for valid states
-    def ping(self):
-        if (self.readFromSPI(0x01, 1) != [133]) and self.currentMode == "Receive":
-            self.powerUP()
-
-
+    #This function will send payload on LoRa
     def transmit(self, msg, timeout):
         length = len(msg)
-        self.workingMode("Standby")
-        payload = self.readFromSPI(0x0E, 1)
-        self.writeOnSPI(0x0D, payload[0])
-        self.writeOnSPI(0x22, length)
-        self.burstWrite(0x00, msg)
-        self.workingMode("Transmit")
+        self.changeWorkingMode("Standby")
+        payload = self.readFromSPI(REG.REG_FIFO_TX_BASE_ADDR, 1)
+        self.writeOnSPI(REG.REG_FIFO_ADDR_PTR, payload[0])
+        self.writeOnSPI(REG.REG_PAYLOAD_LENGTH, length)
+        self.burstWrite(REG.REG_FIFO, msg)
+        self.changeWorkingMode("Transmit")
         state = True
         while True:
             payload = self.readFromSPI(0x12, 1)
             if((payload[0] & 0x08) != 0):
-                self.writeOnSPI(0x12, 0xFF)
-                self.workingMode("Receive")
+                self.writeOnSPI(REG.REG_IRQ_FLAGS, IRQMASKS.IRQ_TX_DONE_MASK)
+                self.workingMode("ReceiveCON")
                 state = True
                 break
             else:
                 timeout = timeout - 1
                 if timeout == 0:
-                    self.workingMode("Receive")
+                    self.changeWorkingMode("ReceiveCON")
                     state = False
                     break
                 time.sleep(0.001)
         return state
 
+    #This function will read payload from LoRa
     def read(self):
-        self.workingMode("Standby")
-        payload = self.readFromSPI(0x12, 1)
+        self.changeWorkingMode("Standby")
+        payload = self.readFromSPI(REG.REG_IRQ_FLAGS, 1)
         message = []
         if self.CRC:
             if payload[0] & 0x50 == 0x50:
-                self.writeOnSPI(0x12, 0xFF)
-                bytesLen = self.readFromSPI(0x13, 1)
-                payload = self.readFromSPI(0x10, 1)
-                self.writeOnSPI(0x0D, payload[0])
-                message = self.readFromSPI(0x00, bytesLen[0])
+                self.writeOnSPI(REG.REG_IRQ_FLAGS, IRQMASKS.IRQ_RX_DONE_MASK)
+                bytesLen = self.readFromSPI(REG.REG_RX_NB_BYTES, 1)
+                payload = self.readFromSPI(REG.REG_FIFO_RX_CURRENT_ADDR, 1)
+                self.writeOnSPI(REG.REG_FIFO_ADDR_PTR, payload[0])
+                message = self.readFromSPI(REG.REG_FIFO, bytesLen[0])
             else:
                 print("false CRC")
         else:
-            self.writeOnSPI(0x12, 0xFF)
-            bytesLen = self.readFromSPI(0x13, 1)
-            payload = self.readFromSPI(0x10, 1)
-            self.writeOnSPI(0x0D, payload[0])
-            message = self.readFromSPI(0x00, bytesLen[0])
-        self.writeOnSPI(0x12, 0xFF)
-        self.workingMode("Receive")
+            self.writeOnSPI(REG.REG_IRQ_FLAGS, IRQMASKS.IRQ_RX_DONE_MASK)
+            bytesLen = self.readFromSPI(REG.REG_RX_NB_BYTES, 1)
+            payload = self.readFromSPI(REG.REG_FIFO_RX_CURRENT_ADDR, 1)
+            self.writeOnSPI(REG.REG_FIFO_ADDR_PTR, payload[0])
+            message = self.readFromSPI(REG.REG_FIFO, bytesLen[0])
+        self.writeOnSPI(REG.REG_IRQ_FLAGS, IRQMASKS.IRQ_RX_DONE_MASK)
+        self.changeWorkingMode("ReceiveCON")
         return message
+
+
+    
+
+        
 
 

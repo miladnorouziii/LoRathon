@@ -6,7 +6,8 @@ DIO_PIN1 = 17
 GPIO.setmode(GPIO.BCM)
 msgCount = 0
 
-lora = LoRa(434, 7, 125, 5, 17, False, True, 56)
+
+lora = LoRa(22, 434, 7, 125, 5, 17, False, True, 56)
 
 def loraMsgReceived(channel):
     try:

@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '1.0.1'
+VERSION = '1.1.0'
 DESCRIPTION = 'A LoRa commiunication package'
 LONG_DESCRIPTION = 'This library is for LoRa modules (Sx127x) based on the Python language'
 
@@ -14,7 +14,7 @@ setup(
     license='GPL-3.0',
     url='https://github.com/miladnorouziii/LoRathon',
     packages=find_packages(),
-    keywords='Lora',
+    keywords=['Lora', 'Lora python', 'Lora raspberry pi','Lora python library', 'lora library raspberry pi'],
     install_requires=['spidev>=1.6',
                       'RPi.GPIO'                     
                       ],
