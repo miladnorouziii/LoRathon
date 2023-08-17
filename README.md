@@ -25,7 +25,7 @@ You can change DIO0 to DIO5, RESET, and NSS pins and assign them your desired pi
 * Some boards (like the Raspberry Pi Zero W), cannot supply enough current for TX mode. So, use an external 3.3V supply that can provide at least 120mA. (Or use lower Transmitting power)
 * These modules work with 3.3v (Or a maximum voltage equal to 3.7v), so be careful and don't connect your module to 5v, otherwise, you will damage your module.
 
-# Installation
+# Installation:
 To install the package use the below command:
 > sudo pip3 install LoRathon
 
