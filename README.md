@@ -6,7 +6,7 @@ This library is for LoRa modules (Sx127x) based on the Python language and has b
 # Ra01/02 pins:
 ![image](https://github.com/Miladnorouzi77/LoRathon/assets/32528196/0bc675ac-c290-40a2-b215-b1e692aad894)
 # Connection to Raspberry Pi:
-Note that you can change DIO0 to DIO5, RESET, and NSS pins and assign them your desired pins.
+You can change DIO0 to DIO5, RESET, and NSS pins and assign them your desired pins.
 | SX127x Pin | Raspberry Pi Pin|
 | -----------| -------|
 |SCLK Pin| GPIO 11|
@@ -22,8 +22,12 @@ Note that you can change DIO0 to DIO5, RESET, and NSS pins and assign them your 
 |DIO5 Pin| Desire|
 
 # NOTES:
-* Some boards (like the Raspberry Pi Zero W), cannot supply enough current for TX mode. So, be sure to use an external 3.3V supply that can provide at least 120mA. (Or use lower Transmitting power)
+* Some boards (like the Raspberry Pi Zero W), cannot supply enough current for TX mode. So, use an external 3.3V supply that can provide at least 120mA. (Or use lower Transmitting power)
 * These modules work with 3.3v (Or a maximum voltage equal to 3.7v), so be careful and don't connect your module to 5v, otherwise, you will damage your module.
+
+# Installation
+To install the package use the below command:
+> sudo pip3 install LoRathon
 
 # API:
 
