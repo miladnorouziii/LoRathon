@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-VERSION = '1.1.0'
+VERSION = '1.1.2'
 DESCRIPTION = 'A LoRa commiunication package'
 LONG_DESCRIPTION = 'This library is for LoRa modules (Sx127x) based on the Python language'
 

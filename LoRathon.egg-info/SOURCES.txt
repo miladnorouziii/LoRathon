@@ -1,6 +1,7 @@
 LICENSE
 README.md
 setup.py
+LoRa/Const.py
 LoRa/LoRa.py
 LoRa/__init__.py
 LoRathon.egg-info/PKG-INFO
