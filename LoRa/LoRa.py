@@ -116,7 +116,7 @@ class LoRa():
         self.writeOnSPI(REG.REG_MODEM_CONFIG_2, data)
 
     #This function will get the Spreading factor from module
-    def getSpreadingFactor(self, sf):
+    def getSpreadingFactor(self):
         ans = self.readFromSPI(REG.REG_MODEM_CONFIG_2, 1) >> 4
         return ans
     
@@ -187,6 +187,7 @@ class LoRa():
 
     #This function will enable or disable crc check.
     def setCrcCheck(self, crcCheck):
+        self.CRC = crcCheck
         if self.CRC:
             reply = self.readFromSPI(REG.REG_MODEM_CONFIG_2, 1)
             data = reply[0] | 0x04
@@ -246,7 +247,8 @@ class LoRa():
 
     #This function will set output power (PA_Conf is 1)
     def setPWR(self, pwr, RFO):
-        if RFO == True:
+        self.RFO = RFO
+        if self.RFO == True:
             if pwr < 0:
                 pwr = 0
             elif pwr > 14:
