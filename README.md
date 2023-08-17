@@ -28,7 +28,9 @@ You can change DIO0 to DIO5, RESET, and NSS pins and assign them your desired pi
 
 # Installation:
 To install the package use the below command:
-> sudo pip3 install LoRathon
+> sudo pip3 install LoRathonR
+
+Requirement packages will be installed automatically.
 
 # API:
 
