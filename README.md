@@ -34,3 +34,6 @@ Requirement packages will be installed automatically.
 
 # API:
 Check [API.md](API.md) file for usage toturial.
+
+# Toturial
+https://medium.com/@miladnorouzi77/lora-with-raspberry-pi-c5bda3103d8d
