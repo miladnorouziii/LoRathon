@@ -311,7 +311,7 @@ class LoRa():
             payload = self.readFromSPI(0x12, 1)
             if((payload[0] & 0x08) != 0):
                 self.writeOnSPI(REG.REG_IRQ_FLAGS, IRQMASKS.IRQ_TX_DONE_MASK)
-                self.workingMode("ReceiveCON")
+                self.changeWorkingMode("ReceiveCON")
                 state = True
                 break
             else:
